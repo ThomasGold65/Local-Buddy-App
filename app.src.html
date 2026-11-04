@@ -1,0 +1,822 @@
+<title>LocalBuddy Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: demo-stage met twee telefoons (parkeerder links, bewoner rechts) en een regiepaneel ertussen. */
+:root{
+  --navy:#13205e; --navy-2:#2b3a86; --muted:#6672a8; --green:#1d6b4e; --green-2:#2a8a63; --mint:#dff3e8; --mint-2:#eef8f2;
+  --heart:#ef4a5c; --amber:#d98a1c; --amber-bg:#fdf1dc; --red:#c8323f; --line:#e7e9f2; --card:#ffffff; --app-bg:#f7f8fb; --blue-dot:#2563eb;
+  --page:#f4f5ef; --page-ink:#13205e; --page-muted:#5d6894; --panel:#ffffff; --panel-line:#e3e6ee; --log-bg:#f6f7fb;
+  --display:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--page:#0e1330;--page-ink:#e8ebfa;--page-muted:#9aa3cc;--panel:#161c40;--panel-line:#262e5c;--log-bg:#11173a;color-scheme:dark}}
+:root[data-theme="dark"]{--page:#0e1330;--page-ink:#e8ebfa;--page-muted:#9aa3cc;--panel:#161c40;--panel-line:#262e5c;--log-bg:#11173a;color-scheme:dark}
+html,body{height:100%}
+body{background:var(--page);color:var(--page-ink);font-family:var(--display);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--green-2);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;max-width:1440px;margin:0 auto}
+
+/* Demo header */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand b{font-size:20px;font-weight:800;letter-spacing:-.02em;color:var(--page-ink)}
+.brand b span{color:var(--green-2)}
+.brand small{display:block;font-size:12px;color:var(--page-muted);font-weight:500}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--panel-line);border-radius:999px;padding:3px}
+.seg button{padding:7px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--page-muted);position:relative}
+.seg button.on{background:var(--green);color:#fff}
+.seg button .dot{position:absolute;top:4px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--heart)}
+.ghost{padding:8px 13px;border-radius:999px;border:1px solid var(--panel-line);background:var(--panel);font-size:13px;font-weight:600;color:var(--page-ink)}
+
+.stage{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:24px;align-items:start}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
+.plabel{font-size:13px;color:var(--page-muted);font-weight:600;text-align:center}
+.plabel b{color:var(--page-ink)}
+@media (max-width:1240px){
+  .stage{grid-template-columns:1fr 1fr}
+  .panel{grid-column:1 / -1;order:3}
+}
+@media (max-width:820px){
+  .stage{grid-template-columns:minmax(0,1fr)}
+  .stage[data-eff="p"] #colR,.stage[data-eff="r"] #colP{display:none}
+  .seg .both{display:none}
+}
+
+/* Phone */
+.phone{width:372px;height:min(770px,calc(100vh - 110px));min-height:640px;border-radius:54px;background:#0d1124;padding:11px;box-shadow:0 30px 60px -20px rgba(19,32,94,.35),inset 0 0 0 2px #2a2f45;position:relative}
+.screen{position:relative;height:100%;border-radius:44px;overflow:hidden;background:var(--app-bg);display:flex;flex-direction:column;color:var(--navy);isolation:isolate}
+.notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:108px;height:30px;background:#0d1124;border-radius:20px;z-index:40}
+.sbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 28px 0 34px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+.sbar i{display:flex;gap:5px;align-items:center}
+@media (max-width:500px){
+  .phone{width:100%;height:calc(100dvh - 150px);min-height:600px;border-radius:30px;padding:6px}
+  .screen{border-radius:25px}
+  .notch{display:none}
+  .sbar{padding:4px 20px 0}
+}
+.scr{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 22px;display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.hd{display:flex;align-items:center;gap:10px;min-height:40px}
+.hd h2{flex:1;text-align:center;font-size:17px;font-weight:800;margin:0;letter-spacing:-.01em}
+.hd .sp{width:32px}
+.ib{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;color:var(--navy)}
+.tabs{flex:none;display:flex;justify-content:space-around;border-top:1px solid var(--line);background:#fff;padding:7px 6px 18px}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:#8a93bd;min-width:58px;position:relative}
+.tabs button.on{color:var(--green)}
+.tabs .badge{position:absolute;top:-3px;right:12px;min-width:16px;height:16px;border-radius:8px;background:var(--heart);color:#fff;font-size:10px;display:grid;place-items:center;padding:0 4px}
+
+/* App components */
+.card{background:var(--card);border-radius:18px;padding:14px 15px;box-shadow:0 1px 0 var(--line),0 4px 14px -8px rgba(19,32,94,.15)}
+.card.mint{background:var(--mint-2);box-shadow:none;border:1px solid #cfeadb}
+.lbl{font-size:12px;color:var(--muted);font-weight:600}
+.big{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.g{color:var(--green)}
+.mut{color:var(--muted)}
+.sm{font-size:12px}
+.row{display:flex;align-items:center;gap:12px}
+.row .grow{flex:1;min-width:0}
+.list{background:#fff;border-radius:18px;box-shadow:0 1px 0 var(--line),0 4px 14px -8px rgba(19,32,94,.15);overflow:hidden}
+.li{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--line);width:100%;text-align:left}
+.li:last-child{border-bottom:0}
+.li .t{font-weight:700;font-size:14px}
+.li .s{font-size:12px;color:var(--muted);margin-top:1px}
+.li .v{font-size:13px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.btn{width:100%;padding:15px;border-radius:15px;background:var(--green);color:#fff;font-weight:700;font-size:15px;display:flex;justify-content:center;align-items:center;gap:8px}
+.btn:active{transform:scale(.99)}
+.btn.sec{background:#fff;color:var(--green);border:1.5px solid #bfe2cf}
+.btn.dark{background:var(--navy)}
+.btn.red{background:#fff;color:var(--red);border:1.5px solid #f1c6cb}
+.btn[disabled]{opacity:.45;cursor:default}
+.lnk{color:var(--green);font-weight:700;font-size:13px}
+.av{border-radius:50%;object-fit:cover;background:#f6efe6;flex:none;display:block}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--mint);color:var(--green);white-space:nowrap}
+.pill.amb{background:var(--amber-bg);color:var(--amber)}
+.pill.gr{background:#eceef5;color:var(--muted)}
+.pill.red{background:#fde8ea;color:var(--red)}
+.field{background:#fff;border-radius:14px;padding:9px 14px;box-shadow:0 1px 0 var(--line),0 3px 10px -6px rgba(19,32,94,.15)}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.field input,.field select{width:100%;border:0;font:inherit;font-weight:700;font-size:15px;color:var(--navy);background:transparent;padding:2px 0;outline:none}
+.sel{appearance:none;border:0;background:transparent;font:inherit;font-size:13px;font-weight:700;color:var(--navy-2);text-align:right;cursor:pointer;max-width:170px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:8px 12px;border-radius:12px;background:#fff;border:1.5px solid var(--line);font-weight:700;font-size:13px}
+.chip.on{border-color:var(--green);background:var(--mint-2);color:var(--green)}
+.bar{height:9px;background:#e7e9f2;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green);border-radius:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tog{width:44px;height:26px;border-radius:13px;background:#d5d9e6;position:relative;flex:none;transition:background .2s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+.tog.on{background:var(--green)}
+.tog.on::after{transform:translateX(18px)}
+.step{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.step button{width:28px;height:28px;font-weight:800;color:var(--green)}
+.step span{min-width:44px;text-align:center;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.price{font-variant-numeric:tabular-nums}
+.price .r{display:flex;justify-content:space-between;font-size:13px;padding:2px 0}
+.hr{height:1px;background:#cfe6d9;margin:8px 0}
+.center{text-align:center}
+.h1{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0;text-wrap:balance}
+.lead{color:var(--muted);font-size:14px;line-height:1.5;margin:0}
+.live{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+
+/* Map */
+.map{border-radius:18px;overflow:hidden;background:#e9efe9;position:relative}
+.map svg{display:block;width:100%;height:auto}
+.zone{cursor:pointer;transition:fill-opacity .2s}
+.zone:hover{fill-opacity:.32}
+.pin{cursor:pointer}
+
+/* Overlays */
+.ov{position:absolute;inset:0;background:rgba(13,17,36,.45);z-index:30;display:flex;align-items:center;justify-content:center;padding:18px;animation:fade .2s}
+.ov.bot{align-items:flex-end;padding:0}
+.modal{background:#fff;border-radius:24px;padding:22px 18px 16px;width:100%;text-align:center;display:flex;flex-direction:column;gap:12px;animation:pop .25s}
+.ov.bot .modal{border-radius:24px 24px 0 0;text-align:left;padding-bottom:26px}
+@keyframes fade{from{opacity:0}}
+@keyframes pop{from{transform:translateY(14px);opacity:0}}
+.banner{position:absolute;top:44px;left:10px;right:10px;z-index:35;background:rgba(255,255,255,.97);border-radius:18px;padding:11px 12px;display:flex;gap:10px;align-items:flex-start;box-shadow:0 12px 30px -10px rgba(13,17,36,.45);animation:drop .35s cubic-bezier(.2,.9,.3,1.2);cursor:pointer}
+.banner .t{font-size:12px;font-weight:800}
+.banner .s{font-size:12px;color:var(--navy-2);line-height:1.35}
+.banner .app{width:34px;height:34px;border-radius:9px;background:var(--navy);display:grid;place-items:center;flex:none}
+@keyframes drop{from{transform:translateY(-30px);opacity:0}}
+.steps{display:flex;flex-direction:column;gap:10px;text-align:left;margin:6px 0}
+.steps div{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:600;color:#a3aacb;transition:color .2s}
+.steps div.done{color:var(--navy)}
+.steps .ck{width:22px;height:22px;border-radius:50%;border:2px solid #d5d9e6;display:grid;place-items:center;flex:none}
+.steps .done .ck{background:var(--green);border-color:var(--green);color:#fff}
+.steps .cur .ck{border-color:var(--green);border-top-color:transparent;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hearts{display:flex;justify-content:center;align-items:center;gap:0}
+.hearts .av{border:4px solid #fff;box-shadow:0 4px 12px -4px rgba(0,0,0,.2)}
+.hearts .hb{width:38px;height:38px;border-radius:50%;background:#fff;display:grid;place-items:center;margin:0 -12px;z-index:2;box-shadow:0 3px 10px -3px rgba(0,0,0,.25);color:var(--heart)}
+.conf{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.conf i{position:absolute;width:7px;height:11px;border-radius:2px;animation:fall 1.6s ease-in forwards}
+@keyframes fall{from{transform:translateY(-20px) rotate(0)}to{transform:translateY(260px) rotate(540deg);opacity:0}}
+
+/* Ring */
+.ring{position:relative;width:210px;height:210px;margin:6px auto 2px}
+.ring svg{transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .c b{font-size:36px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+
+/* Discover card */
+.dcard{background:#fff;border-radius:26px;padding:22px 18px 18px;text-align:center;box-shadow:0 10px 30px -14px rgba(19,32,94,.35);display:flex;flex-direction:column;gap:6px;align-items:center}
+.dbtns{display:flex;justify-content:center;gap:42px;margin-top:6px}
+.dbtns button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted)}
+.dbtns .c{width:66px;height:66px;border-radius:50%;display:grid;place-items:center;box-shadow:0 6px 18px -8px rgba(19,32,94,.4)}
+.dbtns .no .c{background:#fff;color:var(--navy)}
+.dbtns .yes .c{background:var(--heart);color:#fff}
+
+/* Panel */
+.panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.panel h3{margin:0 0 2px;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.panel .sub{font-size:12.5px;color:var(--page-muted);margin:0 0 10px;line-height:1.45}
+.route{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px;counter-reset:r}
+.route li{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;color:var(--page-muted)}
+.route li .n{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--panel-line);display:grid;place-items:center;font-size:11px;font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+.route li.done{color:var(--page-ink)}
+.route li.done .n{background:var(--green);border-color:var(--green);color:#fff}
+.route li.next .n{border-color:var(--green-2);color:var(--green-2)}
+.route li b{color:var(--page-ink);font-weight:700}
+.log{background:var(--log-bg);border-radius:14px;padding:6px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.log .e{padding:8px 9px;border-radius:9px;font-size:12px;line-height:1.45;display:grid;grid-template-columns:44px minmax(0,1fr);gap:8px}
+.log .e:first-child{background:var(--panel)}
+.log .tm{font-family:var(--mono);color:var(--page-muted);font-size:11px;padding-top:1px}
+.log .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-right:6px;vertical-align:1px}
+.log .tag.lb{background:#dff3e8;color:#1d6b4e}
+.log .tag.pp{background:#e2e7fb;color:#2b3a86}
+.log code{display:block;font-family:var(--mono);font-size:11px;color:var(--page-muted);margin-top:3px;word-break:break-word;white-space:pre-wrap}
+.log .empty{padding:14px;font-size:12.5px;color:var(--page-muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--page-muted)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg width="34" height="40" viewBox="0 0 34 40" aria-hidden="true"><path d="M17 1C8.2 1 1 8 1 16.6 1 27.4 17 39 17 39s16-11.6 16-22.4C33 8 25.8 1 17 1z" fill="#13205e"/><circle cx="17" cy="16" r="11" fill="#2a8a63"/><path d="M17 23.5s-7-4.3-7-8.6c0-2.3 1.7-3.9 3.7-3.9 1.4 0 2.6.8 3.3 2 .7-1.2 1.9-2 3.3-2 2 0 3.7 1.6 3.7 3.9 0 4.3-7 8.6-7 8.6z" fill="#fff"/></svg>
+      <div><b>Local<span>Buddy</span></b><small>Klikbare demo · parkeren op bezoekersuren van je Buddy</small></div>
+    </div>
+    <div class="seg" id="viewSeg" role="tablist" aria-label="Weergave">
+      <button class="both" data-a="view" data-v="both">Beide</button>
+      <button data-a="view" data-v="p">Parkeerder</button>
+      <button data-a="view" data-v="r">Bewoner</button>
+    </div>
+    <div class="seg" role="group" aria-label="Demotijd">
+      <button data-a="speed" data-v="1" id="sp1">Tijd 1×</button>
+      <button data-a="speed" data-v="60" id="sp60">1 sec = 1 min</button>
+    </div>
+    <button class="ghost" data-a="reset">Demo resetten</button>
+  </header>
+
+  <main class="stage" id="stage">
+    <section class="col" id="colP">
+      <div class="plabel"><b>Daan</b> · parkeerder</div>
+      <div class="phone"><div class="screen" id="phP"></div><div class="notch"></div></div>
+    </section>
+    <aside class="panel" id="panel"></aside>
+    <section class="col" id="colR">
+      <div class="plabel"><b>Sophie</b> · bewoner met bezoekersvergunning</div>
+      <div class="phone"><div class="screen" id="phR"></div><div class="notch"></div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const AV={sophie:'__AV_sophie__',daan:'__AV_daan__',henk:'__AV_henk__',mark:'__AV_mark__',thomas:'__AV_thomas__',emma:'__AV_emma__',lisa:'__AV_lisa__'};
+const RATE=3.00, REG=4.00, PAYOUT=2.00, KEY='localbuddy-demo-v1';
+const ZONES={
+  '1073':{name:'Oud-West',poly:'18,40 150,28 170,152 36,172',lx:40,ly:58},
+  '1234':{name:'Centrum',poly:'176,40 302,28 332,142 188,152',lx:196,ly:56},
+  '1450':{name:'De Pijp',poly:'124,178 284,166 304,284 134,288',lx:146,ly:198}
+};
+const ME={x:100,y:108};
+
+function fresh(){
+  const person=(name,zone,street,x,y,extra)=>Object.assign({name,zone,street,x,y,total:500,used:80,shared:250,helped:6,earned:60,wallet:30,month:6,status:'none',paused:false,maxDay:3,todayMin:0,bio:''},extra);
+  return {v:1,sim:Date.now(),speed:1,view:'both',
+    p:{screen:'welcome',tab:'home',name:'Daan',email:'daan@mail.nl',phone:'+31 6 12 34 56 78',avatar:'daan',
+       plates:[{p:'XX-123-X',l:'Mijn auto'},{p:'YV-456-V',l:'Werkauto'}],plate:0,wallet:25,zone:'1073',mapZone:null,dzone:'1073',didx:0,dur:120,pick:'',history:[]},
+    r:{screen:'main',tab:'home',linked:true,gemeente:'Gemeente Amsterdam',permit:'BZ-2026-4821',notify:true,auto:true,draft:null,meld:'4821 7730',pin:'1234'},
+    people:{
+      sophie:person('Sophie','1073','Bilderdijkstraat',66,78,{used:46,shared:300,helped:14,earned:126,wallet:84.20,month:12.50,maxDay:4,bio:'Werkt vaak thuis en heeft zelden bezoek met de auto.'}),
+      mark:person('Mark','1073','Kinkerstraat',128,134,{bio:'Heeft geen auto en deelt graag zijn uren.'}),
+      emma:person('Emma','1234','Prinsengracht',222,74,{bio:'Woont aan de gracht, bezoek komt meestal op de fiets.'}),
+      henk:person('Henk','1234','Keizersgracht',284,114,{bio:'Gepensioneerd en vaak op reis.'}),
+      lisa:person('Lisa','1450','Ceintuurbaan',176,226,{bio:'Helpt graag buren en bezoekers van de markt.'}),
+      thomas:person('Thomas','1450','Sarphatipark',254,252,{bio:'Werkt in het buitenland, uren blijven liggen.'})
+    },
+    rtx:[{who:'Harry',d:'28 okt · 2 uur',amt:4},{who:'Marcello',d:'24 okt · 1,5 uur',amt:3},{who:'Deborah',d:'19 okt · 3 uur',amt:6},{who:'Uitbetaling',d:'1 okt',amt:-25,bank:true}],
+    session:null,log:[],seq:88410,
+    route:{account:false,like:false,accept:false,park:false,notify:false,stop:false},
+    modal:{p:null,r:null},banner:{p:null,r:null},unseenR:false
+  };
+}
+let S=load()||fresh();
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.v===1)return s}catch(e){}return null}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ---------- helpers ---------- */
+const eur=n=>'€ '+(Math.round(n*100)/100).toLocaleString('nl-NL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const hrs=h=>{const r=Math.round(h*10)/10;return r.toLocaleString('nl-NL',{maximumFractionDigits:1})};
+const tm=ms=>{const d=new Date(ms);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const dur=min=>{min=Math.round(min);const h=Math.floor(min/60),m=min%60;return h?(h+' u'+(m?' '+m+' min':'')):m+' min'};
+const cd=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000);return Math.floor(s/3600)+':'+String(Math.floor(s/60)%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const av=(id,size)=>`<img class="av" src="${AV[id]}" width="${size}" height="${size}" alt="">`;
+const P=id=>S.people[id];
+const plate=()=>S.p.plates[S.p.plate]?.p||'—';
+const remainYear=pp=>pp.total-pp.used;
+const allowMin=pp=>Math.max(0,pp.maxDay*60-pp.todayMin);
+function greet(){const h=new Date(S.sim).getHours();return h<12?'Goedemorgen':h<18?'Goedemiddag':'Goedenavond'}
+function buddiesIn(zone){return Object.entries(S.people).filter(([id,pp])=>pp.zone===zone&&pp.status==='buddy')}
+function usable(zone){
+  return buddiesIn(zone).filter(([id,pp])=>!pp.paused&&(id!=='sophie'||(S.r.auto&&S.r.linked))&&allowMin(pp)>0&&pp.shared>0)
+    .sort((a,b)=>Math.min(allowMin(b[1]),b[1].shared*60)-Math.min(allowMin(a[1]),a[1].shared*60));
+}
+function chosen(zone){const u=usable(zone);return u.find(([id])=>id===S.p.pick)||u[0]||null}
+function log(tag,text,code){S.log.unshift({t:S.sim,tag,text,code:code||''});S.log=S.log.slice(0,40)}
+function banner(ph,title,text,avId){
+  if(ph==='r'&&!S.r.notify)return;
+  S.banner[ph]={title,text,av:avId,id:Math.random()};
+  if(ph==='r'&&effView()==='p')S.unseenR=true;
+  const id=S.banner[ph].id;
+  setTimeout(()=>{if(S.banner[ph]&&S.banner[ph].id===id){S.banner[ph]=null;render()}},4800);
+}
+
+const I={
+ home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ map:'<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+ users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.4 3.5 5.2"/>',
+ user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.4 4-6.5 8-6.5s7.2 2.1 8 6.5"/>',
+ car:'<path d="M5 16V11l2-5h10l2 5v5M3 16h18v3h-3M6 19H3"/><circle cx="7.5" cy="13.5" r=".6"/><circle cx="16.5" cy="13.5" r=".6"/><path d="M5 11h14"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ wallet:'<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/>',
+ chev:'<path d="m9 5 7 7-7 7"/>',back:'<path d="m15 5-7 7 7 7"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+ heart:'<path d="M12 20s-8-4.9-8-10.3C4 7 6 5 8.4 5c1.5 0 2.9.8 3.6 2.1C12.7 5.8 14.1 5 15.6 5 18 5 20 7 20 9.7 20 15.1 12 20 12 20z" fill="currentColor" stroke="none"/>',
+ x:'<path d="M6 6l12 12M18 6 6 18"/>',check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+ bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',bolt:'<path d="M13 3 5 14h6l-1 7 8-11h-6z"/>',
+ hist:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+ swap:'<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
+ shield:'<path d="M12 3 4.5 6v6c0 4.4 3.2 7.8 7.5 9 4.3-1.2 7.5-4.6 7.5-9V6z"/><path d="m8.8 12 2.2 2.2 4.3-4.4"/>',
+ sliders:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+ stop:'<rect x="6.5" y="6.5" width="11" height="11" rx="2"/>',
+ euro:'<path d="M17.5 6.5A7 7 0 1 0 17.5 17.5M4 10h9M4 14h9"/>',
+ bank:'<path d="M3 10 12 4l9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/>',
+ search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>'
+};
+const ic=(n,s=20,sw=1.9)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${I[n]}</svg>`;
+const logo=s=>`<svg width="${s}" height="${s*1.18}" viewBox="0 0 34 40" aria-hidden="true"><path d="M17 1C8.2 1 1 8 1 16.6 1 27.4 17 39 17 39s16-11.6 16-22.4C33 8 25.8 1 17 1z" fill="#13205e"/><circle cx="17" cy="16" r="11" fill="#2a8a63"/><path d="M17 23.5s-7-4.3-7-8.6c0-2.3 1.7-3.9 3.7-3.9 1.4 0 2.6.8 3.3 2 .7-1.2 1.9-2 3.3-2 2 0 3.7 1.6 3.7 3.9 0 4.3-7 8.6-7 8.6z" fill="#fff"/></svg>`;
+const hd=(title,backAct,backV='',right='<span class="sp"></span>')=>`<div class="hd">${backAct?`<button class="ib" data-a="${backAct}" data-v="${backV}" aria-label="Terug">${ic('back',22,2.2)}</button>`:'<span class="sp"></span>'}<h2>${title}</h2>${right}</div>`;
+const sbar=()=>`<div class="sbar"><span>${tm(S.sim)}</span><i><svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg><svg width="25" height="12" viewBox="0 0 25 12"><rect x=".5" y=".5" width="21" height="11" rx="3" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="16" height="8" rx="1.6" fill="currentColor"/><rect x="23" y="4" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".4"/></svg></i></div>`;
+
+/* ---------- map ---------- */
+function mapSvg(opts={}){
+  const z=opts.focus;
+  let s=`<svg viewBox="0 0 340 300" role="img" aria-label="Kaart met parkeerzones">
+  <rect width="340" height="300" fill="#eef2ea"/>
+  <rect x="200" y="196" width="80" height="60" rx="8" fill="#d6ead3"/>
+  <path d="M-10 166 C 80 150, 140 175, 200 160 S 300 150, 350 158" stroke="#bcd8ee" stroke-width="12" fill="none"/>
+  <path d="M168 -10 C 160 60, 182 110, 172 310" stroke="#bcd8ee" stroke-width="8" fill="none"/>
+  <g stroke="#fff" stroke-width="6" fill="none" stroke-linecap="round">
+    <path d="M0 96 H340"/><path d="M0 230 H340"/><path d="M84 0 V300"/><path d="M250 0 V300"/><path d="M0 30 L340 18"/><path d="M40 300 L120 0"/>
+  </g>
+  <g stroke="#fff" stroke-width="2.5" fill="none"><path d="M0 64 H340"/><path d="M0 128 H340"/><path d="M0 200 H340"/><path d="M0 262 H340"/><path d="M128 0 V300"/><path d="M210 0 V300"/><path d="M296 0 V300"/></g>`;
+  for(const [k,zn] of Object.entries(ZONES)){
+    const on=z?z===k:true, sel=S.p.mapZone===k;
+    s+=`<polygon class="zone" data-a="mapzone" data-v="${k}" points="${zn.poly}" fill="#2a8a63" fill-opacity="${sel?0.34:on?0.18:0.06}" stroke="#1d6b4e" stroke-width="${sel?2.5:1.5}" stroke-opacity="${on?0.9:0.35}"/>`;
+    s+=`<g pointer-events="none"><rect x="${zn.lx-4}" y="${zn.ly-13}" width="${k.length*8+zn.name.length*6.2+22}" height="20" rx="6" fill="#13205e" opacity="${on?0.92:0.4}"/><text x="${zn.lx+3}" y="${zn.ly+1}" font-size="11" font-weight="700" fill="#fff" font-family="Plus Jakarta Sans, sans-serif">${k} · ${zn.name}</text></g>`;
+  }
+  for(const [id,pp] of Object.entries(S.people)){
+    const col=pp.status==='buddy'?(pp.paused?'#9aa1bf':'#1d6b4e'):pp.status==='pending'?'#d98a1c':'#13205e';
+    const dim=z&&pp.zone!==z?0.35:1;
+    s+=`<g class="pin" data-a="mapzone" data-v="${pp.zone}" transform="translate(${pp.x},${pp.y})" opacity="${dim}"><path d="M0,4 C-9,-5 -12,-9 -12,-14 A12,12 0 1 1 12,-14 C12,-9 9,-5 0,4z" fill="${col}" stroke="#fff" stroke-width="2"/><path d="M0,-8.5s-5-3-5-6.2c0-1.6 1.2-2.8 2.6-2.8 1 0 1.9.6 2.4 1.4.5-.8 1.4-1.4 2.4-1.4 1.4 0 2.6 1.2 2.6 2.8 0 3.2-5 6.2-5 6.2z" fill="#fff"/></g>`;
+  }
+  s+=`<circle cx="${ME.x}" cy="${ME.y}" r="18" fill="#2563eb" opacity=".14"/><circle cx="${ME.x}" cy="${ME.y}" r="7" fill="#2563eb" stroke="#fff" stroke-width="3"/></svg>`;
+  return s;
+}
+
+/* ---------- parkeerder ---------- */
+function renderP(){
+  const p=S.p;let body='',tabs=false;
+  if(p.screen==='welcome'){
+    body=`<div class="scr" style="justify-content:center;gap:18px;padding-top:30px">
+      <div class="center">${logo(64)}</div>
+      <div class="center"><div style="font-size:30px;font-weight:800;letter-spacing:-.03em">Local<span class="g">Buddy</span></div><div class="g" style="font-weight:700;margin-top:2px">Overal een bekende!</div></div>
+      <div class="hearts" style="margin:10px 0">${av('daan',84)}<span class="hb">${ic('heart',20)}</span>${av('sophie',84)}</div>
+      <p class="lead center">Word één keer Buddy met een bewoner. Daarna parkeer je automatisch op diens bezoekersuren. Je hoeft niet meer per keer te vragen.</p>
+      <button class="btn" data-a="go" data-v="signup">Account aanmaken ${ic('chev',18,2.4)}</button>
+      <button class="lnk center" data-a="skipOnb">Ik heb al een account</button></div>`;
+  } else if(p.screen==='signup'){
+    body=`<div class="scr">${hd('Profiel aanmaken','go','welcome')}
+      <div class="center" style="margin:4px 0 6px">${logo(40)}</div>
+      ${field('Naam','name',p.name)}${field('E-mailadres','email',p.email)}${field('Telefoonnummer','phone',p.phone)}
+      <div class="field"><label for="pw">Wachtwoord</label><input id="pw" type="password" value="demo-wachtwoord" readonly></div>
+      <div style="flex:1"></div><button class="btn" data-a="go" data-v="plates">Verder ${ic('chev',18,2.4)}</button></div>`;
+  } else if(p.screen==='plates'||p.screen==='platesEdit'){
+    const edit=p.screen==='platesEdit';
+    body=`<div class="scr">${hd('Mijn kentekens',edit?'tab':'go',edit?'profile':'signup')}
+      <p class="lead sm">Je kunt meerdere kentekens toevoegen. Bij het parkeren kies je welke auto je gebruikt.</p>
+      <div class="list">${p.plates.map((x,i)=>`<button class="li" data-a="plate" data-v="${i}">${ic('car',24)}<div class="grow"><div class="t">${esc(x.p)}</div><div class="s">${esc(x.l)}</div></div>${i===p.plate?'<span class="pill">Standaard</span>':''}</button>`).join('')}</div>
+      <button class="btn sec" data-a="addPlate">${ic('plus',18,2.4)} Kenteken toevoegen</button>
+      <div style="flex:1"></div>${edit?'':`<button class="btn" data-a="go" data-v="avatar">Verder ${ic('chev',18,2.4)}</button>`}</div>`;
+  } else if(p.screen==='avatar'){
+    const opts=['daan','thomas','mark','henk'];
+    body=`<div class="scr">${hd('Kies je avatar','go','plates')}
+      <div class="center" style="margin:6px 0">${av(p.avatar,150)}</div>
+      <p class="lead sm center">Geen foto's, wel een herkenbare avatar. Zo zien bewoners wie er bij hen parkeert.</p>
+      <div class="chips" style="justify-content:center">${opts.map(o=>`<button data-a="avatar" data-v="${o}" style="border-radius:50%;padding:3px;border:2.5px solid ${o===p.avatar?'var(--green)':'transparent'}">${av(o,58)}</button>`).join('')}</div>
+      <div style="flex:1"></div><button class="btn" data-a="finishOnb">Klaar ${ic('check',18,2.4)}</button></div>`;
+  } else if(p.screen==='discover'){
+    const list=Object.entries(S.people).filter(([id,pp])=>pp.zone===p.dzone&&pp.status!=='buddy');
+    const i=Math.min(p.didx,Math.max(0,list.length-1)); const cur=list[i];
+    const zn=ZONES[p.dzone];
+    body=`<div class="scr">${hd(list.length?`${i+1} van ${list.length}`:'LocalBuddies','tab','map')}
+      <div class="center sm mut" style="margin-top:-6px">Bewoners met bezoekersuren in zone ${p.dzone} · ${zn.name}</div>`;
+    if(!cur){
+      body+=`<div class="card center" style="padding:26px 18px"><div class="g">${ic('check',34,2.4)}</div><div style="font-weight:800;margin-top:6px">Je kent hier iedereen al</div><p class="lead sm">Al je Buddies in deze zone staan klaar. Je kunt direct parkeren.</p></div>
+      <button class="btn" data-a="openStart" data-v="${p.dzone}">Parkeren in zone ${p.dzone}</button>`;
+    } else {
+      const [id,pp]=cur;
+      body+=`<div class="dcard">${av(id,150)}<div style="font-size:22px;font-weight:800;margin-top:6px">${pp.name}</div>
+        <div class="sm mut">${pp.street} · zone ${pp.zone}</div>
+        <div class="chips" style="justify-content:center;margin:6px 0"><span class="pill">${hrs(pp.shared)} uur beschikbaar</span><span class="pill gr">${pp.helped} mensen geholpen</span></div>
+        <p class="lead sm" style="max-width:260px">${pp.bio}</p>
+        ${pp.status==='pending'?`<div class="pill amb" style="font-size:12px;padding:7px 12px">${ic('clock',14,2.2)} Verzoek verstuurd · wacht op akkoord</div>`:`<div class="dbtns"><button class="no" data-a="skip">${'<span class="c">'+ic('x',28,2.6)+'</span>'}Volgende</button><button class="yes" data-a="like" data-v="${id}">${'<span class="c">'+ic('heart',30)+'</span>'}Word Buddy</button></div>`}
+      </div>
+      <p class="sm mut center" style="margin:0 10px">${pp.name} keurt je verzoek één keer goed. Daarna parkeer je hier automatisch, binnen de limieten die ${pp.name} instelt.</p>
+      ${list.length>1&&pp.status==='pending'?`<button class="btn sec" data-a="skip">Volgende bewoner</button>`:''}`;
+    }
+    body+='</div>';
+  } else if(p.screen==='start'){
+    const zn=ZONES[p.zone]; const all=usable(p.zone); const ch=chosen(p.zone);
+    const pp=ch?ch[1]:null; const cap=pp?Math.min(allowMin(pp),Math.floor(pp.shared*60)):0;
+    const minutes=pp?Math.min(p.dur,cap):p.dur; const capped=pp&&p.dur>cap;
+    const cost=minutes/60*RATE, reg=minutes/60*REG;
+    body=`<div class="scr">${hd('Start parkeren','tab','home')}
+      <div class="map">${mapSvg({focus:p.zone})}</div>
+      <div class="list">
+        <div class="li">${ic('map',20)}<div class="grow t">Zone</div><select class="sel" data-c="zone" aria-label="Zone">${Object.entries(ZONES).map(([k,v])=>`<option value="${k}" ${k===p.zone?'selected':''}>${k} – ${v.name}</option>`).join('')}</select></div>
+        <div class="li">${ic('car',20)}<div class="grow t">Kenteken</div><select class="sel" data-c="plate" aria-label="Kenteken">${p.plates.map((x,i)=>`<option value="${i}" ${i===p.plate?'selected':''}>${esc(x.p)}</option>`).join('')}</select></div>
+        <div class="li">${ic('users',20)}<div class="grow"><div class="t">Buddy</div><div class="s">${pp?'Automatisch gekozen':'Geen Buddy beschikbaar'}</div></div>${all.length>1?`<select class="sel" data-c="pick" aria-label="Buddy">${all.map(([id,b])=>`<option value="${id}" ${ch&&ch[0]===id?'selected':''}>${b.name}</option>`).join('')}</select>`:pp?`<span class="row" style="gap:7px"><b class="sm">${pp.name}</b>${av(ch[0],26)}</span>`:''}</div>
+      </div>
+      ${pp?`<div><div class="lbl" style="margin:0 2px 6px">Tot hoe laat wil je parkeren?</div>
+        <div class="chips">${[30,60,120,180,240].map(m=>`<button class="chip ${p.dur===m?'on':''}" data-a="dur" data-v="${m}">${m<60?m+' min':m/60+' uur'}</button>`).join('')}</div>
+        <div class="sm mut" style="margin:7px 2px 0">Eindtijd <b style="color:var(--navy)">${tm(S.sim+minutes*60000)}</b>${capped?` · aangepast aan de daglimiet van ${pp.name} (${pp.maxDay} uur)`:''}</div></div>
+      <div class="card mint price">
+        <div class="r"><span><b>Tarief via LocalBuddy</b></span><b>${eur(RATE)} / uur</b></div>
+        <div class="r mut"><span>Regulier tarief</span><span>${eur(REG)} / uur</span></div>
+        <div class="hr"></div>
+        <div class="r"><span><b>Totale kosten</b> (${dur(minutes)})</span><b>${eur(cost)}</b></div>
+        <div class="r g"><span><b>Voordeel</b></span><b>${eur(reg-cost)}</b></div>
+      </div>
+      <button class="btn" data-a="startPark">Parkeren starten</button>`
+      :`<div class="card center"><div style="font-weight:800">Nog geen Buddy beschikbaar in zone ${p.zone}</div><p class="lead sm" style="margin-top:4px">${buddiesIn(p.zone).length?'Je Buddies hier hebben automatisch parkeren gepauzeerd of hun daglimiet bereikt.':'Word eerst Buddy met een bewoner in deze zone.'}</p></div>
+      <button class="btn" data-a="discover" data-v="${p.zone}">Vind een LocalBuddy</button>`}
+    </div>`;
+  } else if(p.screen==='active'&&S.session){
+    const s=S.session, pp=P(s.rid);
+    body=`<div class="scr">${hd('Parkeren actief','tab','home')}
+      <div class="ring"><svg width="210" height="210" viewBox="0 0 210 210"><circle cx="105" cy="105" r="92" stroke="#dff3e8" stroke-width="16" fill="none"/><circle id="ringArc" cx="105" cy="105" r="92" stroke="#2a8a63" stroke-width="16" fill="none" stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="0"/></svg>
+        <div class="c"><b data-live="cd">${cd(s.end-S.sim)}</b><span class="mut sm">tot ${tm(s.end)}</span></div></div>
+      <div class="list">
+        <div class="li">${ic('map',20)}<div class="grow t">Zone</div><div class="v">${s.zone} – ${ZONES[s.zone].name}</div></div>
+        <div class="li">${ic('car',20)}<div class="grow t">Kenteken</div><div class="v">${s.plate}</div></div>
+        <div class="li">${av(s.rid,24)}<div class="grow t">Via Buddy</div><div class="v">${pp.name}</div></div>
+        <div class="li">${ic('wallet',20)}<div class="grow t">Tarief</div><div class="v"><b style="color:var(--navy)">${eur(RATE)} / uur</b><br><span class="sm">normaal ${eur(REG)}</span></div></div>
+        <div class="li">${ic('euro',20)}<div class="grow t">Totaal nu</div><div class="v" style="color:var(--navy);font-weight:800" data-live="cost">${eur(curMin()/60*RATE)}</div></div>
+      </div>
+      <div class="row" style="gap:10px"><button class="btn sec" data-a="extend">+30 min</button><button class="btn red" data-a="stopPark">${ic('stop',18,2.2)} Stoppen</button></div>
+      <div class="sm mut center">${ic('shield',13,2)} Aangemeld in het parkeerportaal op de vergunning van ${pp.name}</div></div>`;
+  } else if(p.screen==='history'){
+    body=`<div class="scr">${hd('Parkeergeschiedenis','tab','profile')}
+      ${p.history.length?`<div class="list">${p.history.map(h=>`<div class="li">${av(h.rid,36)}<div class="grow"><div class="t">Zone ${h.zone} · via ${P(h.rid).name}</div><div class="s">${h.date} · ${dur(h.min)} · ${h.plate}</div></div><div class="v" style="color:var(--navy)">${eur(h.cost)}<br><span class="g sm">−${eur(h.save)}</span></div></div>`).join('')}</div>`
+      :'<div class="card center mut">Nog geen parkeersessies.</div>'}</div>`;
+  } else {
+    tabs=true; body=renderPTab();
+  }
+  let html=sbar()+body;
+  if(tabs){
+    const req=Object.values(S.people).filter(x=>x.status==='pending').length;
+    html+=`<nav class="tabs">${[['home','home','Home'],['map','map','Kaart'],['buddies','users','Buddies'],['profile','user','Profiel']].map(([k,i,l])=>`<button class="${p.tab===k?'on':''}" data-a="tab" data-v="${k}">${ic(i,22)}${l}${k==='buddies'&&req?`<span class="badge">${req}</span>`:''}</button>`).join('')}</nav>`;
+  }
+  html+=overlays('p');
+  return html;
+}
+function field(label,key,val){return `<div class="field"><label for="f-${key}">${label}</label><input id="f-${key}" data-in="${key}" value="${esc(val)}"></div>`}
+function curMin(){return S.session?Math.max(0,(Math.min(S.sim,S.session.end)-S.session.start)/60000):0}
+
+function renderPTab(){
+  const p=S.p;
+  if(p.tab==='home'){
+    const zn=ZONES[p.zone]; const s=S.session; const ch=chosen(p.zone);
+    const bud=Object.entries(S.people).filter(([,x])=>x.status==='buddy'||x.status==='pending');
+    return `<div class="scr">
+      <div class="row" style="margin-top:2px">${av(p.avatar,48)}<div class="grow"><div class="sm mut">${greet()},</div><div style="font-weight:800;font-size:18px">${esc(p.name)}</div></div><span class="pill">${eur(p.wallet)}</span></div>
+      ${s?`<button class="card" data-a="go" data-v="active" style="text-align:left;background:var(--navy);color:#fff">
+          <div class="row"><span class="live"></span><b class="grow">Je parkeert nu</b><span class="sm" style="opacity:.75">tot ${tm(s.end)}</span></div>
+          <div style="font-size:30px;font-weight:800;margin:6px 0 2px;font-variant-numeric:tabular-nums" data-live="cd">${cd(s.end-S.sim)}</div>
+          <div class="sm" style="opacity:.8">Zone ${s.zone} · ${s.plate} · via ${P(s.rid).name}</div></button>`
+      :`<div class="card">
+          <div class="row"><span style="color:var(--blue-dot)">${ic('map',22)}</span><div class="grow"><div class="lbl">Je locatie</div><div style="font-weight:800">Zone ${p.zone} · ${zn.name}</div></div></div>
+          ${ch?`<div class="row" style="margin:12px 0;padding:10px;border-radius:14px;background:var(--mint-2)">${av(ch[0],40)}<div class="grow"><div style="font-weight:700;font-size:14px">${ch[1].name} is je Buddy hier</div><div class="sm mut">Je parkeert automatisch op ${ch[1].name}'s uren</div></div></div>
+            <button class="btn" data-a="openStart" data-v="${p.zone}">${ic('bolt',18,2.2)} Start parkeren</button>`
+          :buddiesIn(p.zone).length?`<p class="lead sm" style="margin:10px 0 12px">Je Buddies in deze zone hebben automatisch parkeren gepauzeerd of hun daglimiet bereikt. Kies een andere Buddy of zone.</p>
+            <button class="btn sec" data-a="discover" data-v="${p.zone}">${ic('heart',18)} Andere LocalBuddy zoeken</button>`
+          :`<p class="lead sm" style="margin:10px 0 12px">Je hebt nog geen Buddy in deze zone. Word één keer Buddy met een bewoner, daarna parkeer je hier met één tik.</p>
+            <button class="btn" data-a="discover" data-v="${p.zone}">${ic('heart',18)} Vind een LocalBuddy</button>`}
+        </div>`}
+      <div class="row" style="margin-top:4px"><b class="grow">Mijn Buddies</b><button class="lnk" data-a="tab" data-v="buddies">Alles</button></div>
+      ${bud.length?`<div class="list">${bud.slice(0,4).map(([id,x])=>buddyRowP(id,x)).join('')}</div>`
+        :`<div class="card mut sm">Nog geen Buddies. Open de kaart om bewoners met bezoekersuren te vinden.</div>`}
+      <div class="card mint row" style="gap:10px">${ic('shield',22)}<div class="sm" style="line-height:1.45"><b>Geen verzoek per keer.</b> Na het eenmalige akkoord meldt LocalBuddy je parkeersessie automatisch aan in het bezoekersportaal van je Buddy.</div></div>
+    </div>`;
+  }
+  if(p.tab==='map'){
+    const z=p.mapZone; const zn=z&&ZONES[z];
+    const inZ=z?Object.entries(S.people).filter(([,x])=>x.zone===z):[];
+    const b=inZ.filter(([,x])=>x.status==='buddy').length;
+    return `<div class="scr">
+      <div class="field row" style="gap:8px;padding:11px 14px">${ic('search',18)}<span class="mut sm grow">Zoek een adres of locatie</span></div>
+      <div class="map">${mapSvg()}</div>
+      <div class="legend" style="color:var(--muted)"><span><b style="color:#1d6b4e">●</b> Buddy</span><span><b style="color:#d98a1c">●</b> Wacht op akkoord</span><span><b style="color:#13205e">●</b> Bewoner met uren</span><span><b style="color:#2563eb">●</b> Jij</span></div>
+      ${z?`<div class="card"><div class="row"><span class="g">${ic('map',20)}</span><b class="grow">Zone ${z} – ${zn.name}</b><button class="ib" data-a="mapzone" data-v="" aria-label="Sluiten">${ic('x',18,2.2)}</button></div>
+        <div class="sm mut" style="margin:6px 0 12px">${inZ.length} bewoners met bezoekersuren · ${b} ${b===1?'Buddy':'Buddies'} van jou</div>
+        <div class="row" style="gap:8px">${b?`<button class="btn" data-a="openStart" data-v="${z}">Parkeer hier</button>`:''}<button class="btn ${b?'sec':''}" data-a="discover" data-v="${z}">Bekijk LocalBuddies</button></div></div>`
+      :`<div class="card sm mut">Tik op een zone om te zien welke bewoners daar bezoekersuren delen.</div>`}
+    </div>`;
+  }
+  if(p.tab==='buddies'){
+    const all=Object.entries(S.people).filter(([,x])=>x.status!=='none');
+    return `<div class="scr">${hd('Mijn Buddies')}
+      ${all.length?`<div class="list">${all.map(([id,x])=>buddyRowP(id,x)).join('')}</div>`:'<div class="card mut sm">Je hebt nog geen Buddies.</div>'}
+      <button class="btn sec" data-a="discover" data-v="${p.zone}">${ic('heart',18)} Meer LocalBuddies vinden</button>
+      <p class="sm mut" style="margin:0 4px;line-height:1.5">Een Buddy keurt je één keer goed. Daarna kun je in diens zone parkeren zonder iets te vragen. De bewoner bepaalt de daglimiet en kan automatisch parkeren altijd pauzeren.</p></div>`;
+  }
+  // profile
+  return `<div class="scr">${hd('Profiel')}
+    <div class="row">${av(p.avatar,78)}<div><div style="font-weight:800;font-size:20px">${esc(p.name)}</div><div class="mut">Parkeerder</div></div></div>
+    <div class="list">
+      <div class="li">${ic('wallet',22)}<div class="grow"><div class="t">Wallet</div><div class="s">${eur(p.wallet)}</div></div></div>
+      <button class="li" data-a="go" data-v="platesEdit">${ic('car',22)}<div class="grow"><div class="t">Mijn kentekens</div><div class="s">${p.plates.length} kentekens</div></div>${ic('chev',18)}</button>
+      <button class="li" data-a="go" data-v="history">${ic('hist',22)}<div class="grow"><div class="t">Parkeergeschiedenis</div><div class="s">${p.history.length} sessies</div></div>${ic('chev',18)}</button>
+      <button class="li" data-a="view" data-v="r">${ic('swap',22)}<div class="grow"><div class="t">Switch naar bewoner</div><div class="s">Bekijk de app van Sophie</div></div>${ic('chev',18)}</button>
+    </div></div>`;
+}
+function buddyRowP(id,x){
+  const pill=x.status==='pending'?'<span class="pill amb">Wacht op akkoord</span>':x.status==='declined'?'<span class="pill red">Afgewezen</span>':(x.paused||(id==='sophie'&&!S.r.auto))?'<span class="pill gr">Gepauzeerd</span>':'<span class="pill">Automatisch</span>';
+  return `<div class="li">${av(id,40)}<div class="grow"><div class="t">${x.name}</div><div class="s">Zone ${x.zone} · ${ZONES[x.zone].name}${x.status==='buddy'?` · max ${x.maxDay} u/dag`:''}</div></div>${pill}</div>`;
+}
+
+/* ---------- bewoner ---------- */
+function renderR(){
+  const r=S.r, me=P('sophie');let body='',tabs=false;
+  if(r.screen==='hours'){
+    const rem=remainYear(me); const d=r.draft??me.shared;
+    body=`<div class="scr">${hd('Uren beschikbaar stellen','rmain','profile')}
+      <div class="card"><div class="row"><span class="grow lbl" style="font-size:14px;color:var(--navy)">Totaal dit jaar</span><b style="font-size:22px">${me.total} uur</b></div>
+        <div class="bar" style="margin:12px 0"><i style="width:${me.used/me.total*100}%"></i></div>
+        <div class="row"><div class="grow"><div class="lbl">Gebruikt</div><b style="font-size:20px">${hrs(me.used)} uur</b></div><div style="text-align:right"><div class="lbl">Nog beschikbaar</div><b style="font-size:20px">${hrs(rem)} uur</b></div></div></div>
+      <div class="card"><div class="lbl" style="font-size:14px;color:var(--navy)">Ik stel beschikbaar</div>
+        <div class="big" style="margin-top:4px"><span id="hrsOut">${Math.round(d)}</span> uur</div><div class="sm mut">van de ${hrs(rem)} resterende uren</div>
+        <input id="hrsRange" type="range" min="0" max="${Math.floor(rem)}" value="${Math.round(d)}" data-range="hours" style="width:100%;margin-top:14px;accent-color:#1d6b4e"></div>
+      <p class="sm mut" style="margin:0 4px">Je eigen bezoek gaat altijd voor. Uren die je niet deelt, blijven voor jezelf.</p>
+      <div style="flex:1"></div><button class="btn" data-a="saveHours">Opslaan</button></div>`;
+  } else if(r.screen==='link'||r.screen==='linking'){
+    const busy=r.screen==='linking';
+    body=`<div class="scr">${hd('Koppeling vergunning','rmain','profile')}
+      ${r.linked&&!busy?`<div class="card mint"><div class="row"><span class="g">${ic('shield',26)}</span><div class="grow"><b>Gekoppeld</b><div class="sm mut">Parkeerportaal ${r.gemeente}</div></div><span class="live"></span></div></div>
+        <div class="list">
+          <div class="li"><div class="grow t">Vergunning</div><div class="v">${r.permit}</div></div>
+          <div class="li"><div class="grow t">Zone</div><div class="v">${me.zone} – ${ZONES[me.zone].name}</div></div>
+          <div class="li"><div class="grow t">Tegoed in portaal</div><div class="v">${hrs(remainYear(me))} uur</div></div>
+          <div class="li"><div class="grow t">Laatste synchronisatie</div><div class="v">${tm(S.sim)}</div></div>
+        </div>
+        <p class="sm mut" style="margin:0 4px;line-height:1.5">Start een Buddy een sessie, dan meldt LocalBuddy die automatisch aan in dit portaal met het kenteken van de Buddy. Bij stoppen wordt de sessie afgemeld en worden alleen de echt gebruikte minuten van je tegoed afgeschreven.</p>
+        <button class="btn red" data-a="unlink">Koppeling verbreken</button>`
+      :`<div class="center" style="margin:4px 0">${ic('link',40,1.6)}</div>
+        <p class="lead sm center">Log in met de meldcode en pincode van je bezoekersvergunning. Die staan in de brief of app van je gemeente.</p>
+        <div class="field"><label for="gm">Gemeente</label><select id="gm" data-c="gemeente">${['Gemeente Amsterdam','Gemeente Utrecht','Gemeente Haarlem','Gemeente Den Haag','Gemeente Rotterdam'].map(g=>`<option ${g===r.gemeente?'selected':''}>${g}</option>`).join('')}</select></div>
+        <div class="field"><label for="mc">Meldcode</label><input id="mc" data-inr="meld" value="${esc(r.meld)}"></div>
+        <div class="field"><label for="pc">Pincode</label><input id="pc" type="password" data-inr="pin" value="${esc(r.pin)}"></div>
+        ${busy?`<div class="steps"><div class="done"><span class="ck">${ic('check',13,3)}</span>Verbinden met parkeerportaal</div><div class="cur"><span class="ck"></span>Vergunning controleren</div></div>`:''}
+        <div style="flex:1"></div><button class="btn" data-a="doLink" ${busy?'disabled':''}>${busy?'Bezig met koppelen…':'Vergunning koppelen'}</button>`}
+    </div>`;
+  } else { tabs=true; body=renderRTab(); }
+  let html=sbar()+body;
+  if(tabs){
+    const req=Object.values(S.people).filter(x=>x.status==='pending'&&x===me).length;
+    const pend=P('sophie').status==='pending'?1:0;
+    html+=`<nav class="tabs">${[['home','home','Home'],['buddies','users','Buddies'],['wallet','wallet','Wallet'],['profile','user','Profiel']].map(([k,i,l])=>`<button class="${r.tab===k?'on':''}" data-a="rtab" data-v="${k}">${ic(i,22)}${l}${k==='buddies'&&pend?'<span class="badge">1</span>':''}</button>`).join('')}</nav>`;
+  }
+  html+=overlays('r');
+  return html;
+}
+function reqCard(){
+  return `<div class="card" style="border:1.5px solid #f3c98a">
+    <div class="row">${av(S.p.avatar,52)}<div class="grow"><div class="pill amb" style="margin-bottom:4px">Buddy-verzoek</div><div style="font-weight:800">${esc(S.p.name)} wil je LocalBuddy worden</div></div></div>
+    <p class="sm mut" style="margin:10px 0;line-height:1.5">Als je accepteert, kan ${esc(S.p.name)} voortaan automatisch parkeren op jouw bezoekersuren in zone 1073. Je krijgt per sessie een melding en ${eur(PAYOUT)} per uur. Je limiet: max ${P('sophie').maxDay} uur per dag.</p>
+    <div class="row" style="gap:8px"><button class="btn sec" data-a="decline">Weigeren</button><button class="btn" data-a="accept">Accepteren</button></div></div>`;
+}
+function renderRTab(){
+  const r=S.r, me=P('sophie'), s=S.session&&S.session.rid==='sophie'?S.session:null;
+  const pend=me.status==='pending';
+  if(r.tab==='home'){
+    const rem=remainYear(me);
+    return `<div class="scr">
+      <div class="row" style="margin-top:2px">${av('sophie',50)}<div class="grow"><div class="sm mut">${greet()},</div><div style="font-weight:800;font-size:18px">Sophie</div></div><button class="ib" data-a="rtab" data-v="profile" aria-label="Instellingen">${ic('gear',22)}</button></div>
+      ${pend?reqCard():''}
+      ${s?`<div class="card" style="background:var(--navy);color:#fff">
+          <div class="row"><span class="live"></span><b class="grow">Nu actief op jouw uren</b><span class="sm" style="opacity:.75">tot ${tm(s.end)}</span></div>
+          <div class="row" style="margin-top:10px">${av(S.p.avatar,40)}<div class="grow"><div style="font-weight:700">${esc(S.p.name)} · ${s.plate}</div><div class="sm" style="opacity:.8">Nog <span data-live="cd">${cd(s.end-S.sim)}</span> · jij ontvangt <span data-live="earn">${eur(curMin()/60*PAYOUT)}</span></div></div></div>
+          <button class="sm" data-a="rStop" style="margin-top:10px;color:#fff;opacity:.85;text-decoration:underline">Sessie beëindigen</button></div>`:''}
+      <div class="card"><div class="lbl">Beschikbare uren</div><div class="big g">${hrs(me.shared)} uur</div><div class="sm mut">van de ${hrs(rem)} resterende uren</div><div class="bar" style="margin-top:10px"><i style="width:${Math.min(100,me.shared/Math.max(1,rem)*100)}%"></i></div></div>
+      <div class="grid2">
+        <div class="card" style="background:#fdeef0;box-shadow:none"><span style="color:var(--heart)">${ic('wallet',22)}</span><div class="lbl" style="margin-top:6px">Ontvangen vergoeding</div><div class="big" style="font-size:22px">${eur(me.earned)}</div></div>
+        <div class="card" style="background:#eef0fb;box-shadow:none"><span style="color:var(--navy-2)">${ic('clock',22)}</span><div class="lbl" style="margin-top:6px">Vandaag gedeeld</div><div class="big" style="font-size:22px">${dur(me.todayMin+(s?curMin():0))}</div></div>
+      </div>
+      <button class="card row" data-a="rtab" data-v="buddies" style="text-align:left">${ic('users',22)}<b class="grow">${me.helped} mensen geholpen</b>${ic('chev',18)}</button>
+      <button class="card row" data-a="rgo" data-v="link" style="text-align:left">${ic('shield',22)}<div class="grow"><b class="sm">${r.linked?'Vergunning gekoppeld':'Vergunning niet gekoppeld'}</b><div class="sm mut">${r.linked?r.gemeente+' · '+r.permit:'Koppel je vergunning om uren te delen'}</div></div>${r.linked?'<span class="live"></span>':'<span class="pill red">Actie</span>'}</button>
+    </div>`;
+  }
+  if(r.tab==='buddies'){
+    const isB=me.status==='buddy';
+    const others=[['emma','Emma','2 okt'],['thomas','Thomas','14 sep'],['lisa','Lisa','30 aug']];
+    return `<div class="scr">${hd('Mijn Buddies')}
+      ${pend?reqCard():''}
+      ${isB?`<div class="card"><div class="row">${av(S.p.avatar,46)}<div class="grow"><b>${esc(S.p.name)}</b><div class="sm mut">${plate()} · Buddy sinds vandaag</div></div><span class="pill ${me.paused?'gr':''}">${me.paused?'Gepauzeerd':'Automatisch'}</span></div>
+        <div class="hr" style="background:var(--line);margin:12px 0"></div>
+        <div class="row"><div class="grow"><div class="t sm" style="font-weight:700">Automatisch parkeren</div><div class="sm mut">Uit = ${esc(S.p.name)} kan tijdelijk niet parkeren</div></div><button class="tog ${me.paused?'':'on'}" data-a="pauseB" aria-label="Automatisch parkeren"></button></div>
+        <div class="row" style="margin-top:12px"><div class="grow"><div class="t sm" style="font-weight:700">Max uren per dag</div><div class="sm mut">Vandaag gebruikt: ${dur(me.todayMin+(s?curMin():0))}</div></div><div class="step"><button data-a="maxDay" data-v="-1" aria-label="Minder">−</button><span>${me.maxDay} u</span><button data-a="maxDay" data-v="1" aria-label="Meer">+</button></div></div>
+        <button class="lnk" data-a="removeB" style="margin-top:12px;color:var(--red)">Buddy verwijderen</button></div>`:''}
+      <div class="lbl" style="margin:4px 2px -4px">Eerdere Buddies</div>
+      <div class="list">${others.map(([id,n,d])=>`<div class="li">${av(id,38)}<div class="grow"><div class="t">${n}</div><div class="s">Laatst geparkeerd ${d}</div></div><span class="pill">Automatisch</span></div>`).join('')}</div>
+      <p class="sm mut" style="margin:0 4px;line-height:1.5">Een Buddy parkeert zonder verzoek per keer. Jij houdt de controle met een daglimiet, pauzeren en meldingen.</p></div>`;
+  }
+  if(r.tab==='wallet'){
+    return `<div class="scr">${hd('Wallet')}
+      <div class="card"><div class="lbl" style="font-size:13px;color:var(--navy)">Totaal saldo</div><div class="big g">${eur(me.wallet)}</div></div>
+      <div class="grid2"><div class="card mint"><span class="g">${ic('euro',22)}</span><div class="lbl" style="margin-top:6px">Deze maand</div><div style="font-weight:800;font-size:20px">${eur(me.month)}</div><div class="sm mut">ontvangen</div></div>
+        <div class="card" style="background:#eef0fb;box-shadow:none"><span style="color:var(--navy-2)">${ic('clock',22)}</span><div class="lbl" style="margin-top:6px">In afwachting</div><div style="font-weight:800;font-size:20px" data-live="earn">${eur(s?curMin()/60*PAYOUT:0)}</div><div class="sm mut">lopende sessie</div></div></div>
+      <b style="margin:4px 2px -4px">Recente transacties</b>
+      <div class="list">${S.rtx.map(t=>`<div class="li"><span style="width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:${t.bank?'#eef0fb':'var(--mint)'};color:${t.bank?'var(--navy-2)':'var(--green)'}">${ic(t.bank?'bank':'car',18)}</span><div class="grow"><div class="t">${esc(t.who)}</div><div class="s">${t.d}</div></div><div class="v" style="color:${t.amt<0?'var(--navy)':'var(--green)'};font-weight:800">${t.amt<0?'−':'+'} ${eur(Math.abs(t.amt))}</div></div>`).join('')}</div></div>`;
+  }
+  return `<div class="scr">${hd('Instellingen')}
+    <div class="row">${av('sophie',64)}<div><div style="font-weight:800;font-size:19px">Sophie</div><div class="mut">Bewoner · zone ${me.zone}</div></div></div>
+    <div class="list">
+      <div class="li">${ic('bolt',20)}<div class="grow"><div class="t">Automatisch parkeren voor Buddies</div><div class="s">Uit = niemand kan parkeren</div></div><button class="tog ${r.auto?'on':''}" data-a="rAuto" aria-label="Automatisch parkeren voor Buddies"></button></div>
+      <div class="li">${ic('bell',20)}<div class="grow"><div class="t">Melding bij elke sessie</div><div class="s">Bij start en stop</div></div><button class="tog ${r.notify?'on':''}" data-a="rNotify" aria-label="Meldingen"></button></div>
+      <button class="li" data-a="rgo" data-v="hours">${ic('sliders',20)}<div class="grow"><div class="t">Uren beschikbaar stellen</div><div class="s">${hrs(me.shared)} uur gedeeld</div></div>${ic('chev',18)}</button>
+      <button class="li" data-a="rgo" data-v="link">${ic('shield',20)}<div class="grow"><div class="t">Koppeling bezoekersvergunning</div><div class="s">${r.linked?'Gekoppeld · '+r.gemeente:'Niet gekoppeld'}</div></div>${ic('chev',18)}</button>
+      <button class="li" data-a="view" data-v="p">${ic('swap',20)}<div class="grow"><div class="t">Switch naar parkeerder</div><div class="s">Bekijk de app van Daan</div></div>${ic('chev',18)}</button>
+    </div></div>`;
+}
+
+/* ---------- overlays ---------- */
+function overlays(ph){
+  let h='';const b=S.banner[ph];
+  if(b)h+=`<div class="banner" data-a="banner" data-v="${ph}"><span class="app">${logo(18)}</span><div class="grow"><div class="t">LocalBuddy · nu</div><div class="s"><b>${esc(b.title)}</b><br>${esc(b.text)}</div></div>${b.av?av(b.av,34):''}</div>`;
+  const m=S.modal[ph]; if(!m)return h;
+  if(m.type==='sent'){
+    h+=`<div class="ov"><div class="modal"><div class="hearts">${av(S.p.avatar,72)}<span class="hb">${ic('heart',18)}</span>${av(m.id,72)}</div>
+      <div style="font-size:20px;font-weight:800">Verzoek verstuurd</div><p class="lead sm">${P(m.id).name} krijgt een melding. Zodra ${P(m.id).name} accepteert, zijn jullie Buddies en kun je in zone ${P(m.id).zone} automatisch parkeren.</p>
+      <button class="btn" data-a="close" data-v="p">Oké</button></div></div>`;
+  }
+  if(m.type==='match'){
+    const pp=P(m.id);const cols=['#ef4a5c','#2a8a63','#f5b942','#2b3a86','#7dd3a8'];
+    h+=`<div class="ov"><div class="modal" style="position:relative;overflow:hidden"><div class="conf">${Array.from({length:22},(_,i)=>`<i style="left:${(i*37)%100}%;top:${-(i%5)*8}px;background:${cols[i%5]};animation-delay:${(i%7)*0.08}s"></i>`).join('')}</div>
+      <div style="font-size:24px;font-weight:800">Het is een match!</div>
+      <div class="hearts">${av(S.p.avatar,88)}<span class="hb">${ic('heart',20)}</span>${av(m.id,88)}</div>
+      <p class="lead sm">Jij en ${pp.name} zijn nu LocalBuddies. Vanaf nu parkeer je in zone ${pp.zone} automatisch op ${pp.name}'s bezoekersuren. Je hoeft niets meer te vragen.</p>
+      <button class="btn" data-a="matchPark" data-v="${pp.zone}">${ic('bolt',18,2.2)} Nu parkeren</button><button class="lnk" data-a="close" data-v="p">Later</button></div></div>`;
+  }
+  if(m.type==='starting'){
+    const s=S.session; const pp=P(s.rid);
+    const st=[`Buddy gekozen: ${pp.name} (zone ${s.zone})`,`Limiet gecontroleerd: ${dur(pp.todayMin)} van ${pp.maxDay} uur vandaag gebruikt`,`Aangemeld in parkeerportaal ${S.r.gemeente.replace('Gemeente ','')}`,`Kenteken ${s.plate} geregistreerd tot ${tm(s.end)}`];
+    h+=`<div class="ov"><div class="modal"><div style="font-size:19px;font-weight:800">Parkeren starten…</div>
+      <div class="steps">${st.map((t,i)=>`<div class="${i<m.stage?'done':i===m.stage?'cur':''}"><span class="ck">${i<m.stage?ic('check',13,3):''}</span>${t}</div>`).join('')}</div>
+      ${s.capped?`<div class="sm mut">Eindtijd aangepast aan de daglimiet van ${pp.name}.</div>`:''}</div></div>`;
+  }
+  if(m.type==='summary'){
+    h+=`<div class="ov bot"><div class="modal"><div class="row"><span class="g">${ic('check',26,2.6)}</span><b class="grow" style="font-size:19px">Parkeersessie beëindigd</b></div>
+      <div class="sm mut">${m.auto?'Je eindtijd is bereikt.':'Je bent gestopt met parkeren.'} De sessie is afgemeld in het parkeerportaal.</div>
+      <div class="card mint price"><div class="r"><span>Duur</span><b>${dur(m.min)}</b></div><div class="r"><span>Zone · kenteken</span><b>${m.zone} · ${m.plate}</b></div><div class="r"><span>Via Buddy</span><b>${P(m.rid).name}</b></div><div class="hr"></div>
+        <div class="r"><span><b>Betaald</b></span><b>${eur(m.cost)}</b></div><div class="r g"><span><b>Voordeel t.o.v. regulier</b></span><b>${eur(m.save)}</b></div></div>
+      <button class="btn" data-a="close" data-v="p">Klaar</button></div></div>`;
+  }
+  return h;
+}
+
+/* ---------- panel ---------- */
+function renderPanel(){
+  const R=S.route;
+  const steps=[
+    ['account','Daan maakt een account aan','Profiel, kentekens en avatar.'],
+    ['like','Daan vindt Sophie op de kaart en tikt op <b>Word Buddy</b>','Zone 1073 · Oud-West, waar Daan nu staat.'],
+    ['accept','Sophie accepteert het Buddy-verzoek, eenmalig','Rechts op Home of onder Buddies.'],
+    ['park','Daan tikt op <b>Start parkeren</b>','Geen verzoek: LocalBuddy kiest de Buddy en meldt aan in het portaal.'],
+    ['notify','Sophie krijgt een melding en ziet de sessie live','Haar uren lopen terug, haar vergoeding loopt op.'],
+    ['stop','Daan stopt, of de eindtijd verloopt','Afmelden in het portaal, afrekenen, uitbetalen.']
+  ];
+  const next=steps.findIndex(s=>!R[s[0]]);
+  return `<div><h3>Demo-route</h3><p class="sub">Volg de stappen. Ze vinken vanzelf af. Gebruik <b>1 sec = 1 min</b> om een sessie snel te laten aflopen.</p>
+    <ol class="route">${steps.map((s,i)=>`<li class="${R[s[0]]?'done':i===next?'next':''}"><span class="n">${R[s[0]]?'✓':i+1}</span><span>${s[1]}<br><span style="font-size:12px">${s[2]}</span></span></li>`).join('')}</ol></div>
+    <div><h3>Achter de schermen</h3><p class="sub">Wat LocalBuddy doet en welke calls naar het parkeerportaal van de gemeente gaan. In deze demo zijn de portaal-calls gesimuleerd.</p>
+    <div class="log">${S.log.length?S.log.map(e=>`<div class="e"><span class="tm">${tm(e.t)}</span><div><span class="tag ${e.tag==='portaal'?'pp':'lb'}">${e.tag==='portaal'?'Portaal':'LocalBuddy'}</span>${e.text}${e.code?`<code>${esc(e.code)}</code>`:''}</div></div>`).join(''):'<div class="empty">Nog geen activiteit. Begin links met <b>Account aanmaken</b>.</div>'}</div></div>`;
+}
+
+/* ---------- render ---------- */
+function effView(){const narrow=matchMedia('(max-width:820px)').matches;return narrow&&S.view==='both'?'p':S.view}
+function render(){
+  const eff=effView();
+  const stage=document.getElementById('stage');stage.dataset.eff=eff;
+  document.getElementById('colP').hidden=eff==='r';document.getElementById('colR').hidden=eff==='p';
+  if(eff!=='p')S.unseenR=false;
+  document.querySelectorAll('#viewSeg button').forEach(b=>{b.classList.toggle('on',b.dataset.v===eff||(b.dataset.v==='both'&&S.view==='both'&&eff==='both'));b.innerHTML=b.textContent+(b.dataset.v==='r'&&S.unseenR?'<span class="dot"></span>':'')});
+  document.getElementById('sp1').classList.toggle('on',S.speed===1);document.getElementById('sp60').classList.toggle('on',S.speed===60);
+  paint('phP',renderP());paint('phR',renderR());
+  document.getElementById('panel').innerHTML=renderPanel();
+  live();
+}
+function paint(id,html){
+  const el=document.getElementById(id);const sc=el.querySelector('.scr');const top=sc?sc.scrollTop:0;const key=el.dataset.key;
+  el.innerHTML=html;
+  const ns=el.querySelector('.scr');const nk=(id==='phP'?S.p.screen+S.p.tab:S.r.screen+S.r.tab);
+  if(ns&&key===nk)ns.scrollTop=top;
+  el.dataset.key=nk;
+}
+function live(){
+  const s=S.session;
+  document.querySelectorAll('[data-live="cd"]').forEach(e=>e.textContent=s?cd(s.end-S.sim):'');
+  document.querySelectorAll('[data-live="cost"]').forEach(e=>e.textContent=eur(curMin()/60*RATE));
+  document.querySelectorAll('[data-live="earn"]').forEach(e=>e.textContent=eur(curMin()/60*PAYOUT));
+  const arc=document.getElementById('ringArc');
+  if(arc&&s){const f=Math.max(0,(s.end-S.sim)/(s.end-s.start));arc.setAttribute('stroke-dashoffset',String(578*(1-f)))}
+  document.querySelectorAll('.sbar span').forEach(e=>e.textContent=tm(S.sim));
+}
+
+/* ---------- actions ---------- */
+function like(id){
+  const pp=P(id);pp.status='pending';S.route.like=true;
+  log('lb',`Buddy-verzoek van ${S.p.name} naar ${pp.name} (zone ${pp.zone}).`);
+  S.modal.p={type:'sent',id};
+  if(id==='sophie'){banner('r','Nieuw Buddy-verzoek',`${S.p.name} wil op jouw bezoekersuren kunnen parkeren.`,S.p.avatar)}
+  else setTimeout(()=>{if(P(id).status==='pending'){acceptBy(id);render();save()}},2600);
+}
+function acceptBy(id){
+  const pp=P(id);pp.status='buddy';if(id==='sophie')S.route.accept=true;
+  log('lb',`${pp.name} heeft ${S.p.name} geaccepteerd. Buddy-koppeling actief: automatisch parkeren in zone ${pp.zone}, max ${pp.maxDay} uur per dag.`);
+  S.modal.p={type:'match',id};
+}
+function startPark(){
+  const p=S.p;const ch=chosen(p.zone);if(!ch)return;
+  const [rid,pp]=ch;const cap=Math.min(allowMin(pp),Math.floor(pp.shared*60));const minutes=Math.min(p.dur,cap);
+  S.seq++;
+  S.session={rid,zone:p.zone,plate:plate(),start:S.sim,end:S.sim+minutes*60000,capped:p.dur>cap,id:S.seq};
+  S.modal.p={type:'starting',stage:0};
+  log('lb',`${p.name} start parkeren in zone ${p.zone}. Buddy automatisch gekozen: <b>${pp.name}</b>. Limiet ok (${dur(pp.todayMin)} van ${pp.maxDay} u gebruikt).`);
+  const steps=[()=>{},()=>{},()=>{log('portaal','Bezoekersparkeren gestart op vergunning van '+pp.name+'.',`POST /bezoekersparkeren/sessies\n{ vergunning: "${S.r.permit}", kenteken: "${S.session.plate}", zone: "${p.zone}", start: "${tm(S.session.start)}", eind: "${tm(S.session.end)}" }\n← 201 Created · sessie ${S.seq}`)},()=>{}];
+  let i=0;const adv=()=>{if(!S.modal.p||S.modal.p.type!=='starting')return;steps[i]&&steps[i]();i++;S.modal.p.stage=i;
+    if(i>=4){setTimeout(()=>{S.modal.p=null;S.p.screen='active';S.route.park=true;
+      if(rid==='sophie'){S.route.notify=true;banner('r',`${S.p.name} parkeert nu op jouw uren`,`Zone ${S.session.zone} · ${S.session.plate} · tot ${tm(S.session.end)}`,S.p.avatar)}
+      log('lb',`Melding verstuurd naar ${pp.name}: ${S.p.name} parkeert tot ${tm(S.session.end)}.`);render();save()},450)}
+    else setTimeout(adv,600);render()};
+  setTimeout(adv,500);
+}
+function stopPark(auto){
+  const s=S.session;if(!s)return;const pp=P(s.rid);
+  const end=Math.min(S.sim,s.end);const min=Math.max(1,Math.ceil((end-s.start)/60000));
+  const cost=min/60*RATE,reg=min/60*REG,pay=min/60*PAYOUT;
+  S.p.wallet-=cost;pp.wallet+=pay;pp.month+=pay;pp.earned+=pay;pp.used+=min/60;pp.shared=Math.max(0,pp.shared-min/60);pp.todayMin+=min;
+  if(!S.p.history.some(h=>h.rid===s.rid))pp.helped++;
+  const d=new Date(S.sim).toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
+  S.p.history.unshift({rid:s.rid,zone:s.zone,plate:s.plate,min,cost,save:reg-cost,date:d});
+  if(s.rid==='sophie')S.rtx.unshift({who:S.p.name,d:`${d} · ${dur(min)}`,amt:pay});
+  log('portaal',`Sessie ${s.id} afgemeld${auto?' (eindtijd bereikt)':''}. ${dur(min)} afgeschreven van het tegoed van ${pp.name}.`,`PUT /bezoekersparkeren/sessies/${s.id}/stop\n{ eind: "${tm(end)}" }\n← 200 OK · resterend tegoed ${hrs(remainYear(pp))} u`);
+  log('lb',`Afgerekend: ${S.p.name} betaalt ${eur(cost)}, ${pp.name} ontvangt ${eur(pay)}.`);
+  S.session=null;S.route.stop=true;
+  S.modal.p={type:'summary',auto,min,cost,save:reg-cost,zone:s.zone,plate:s.plate,rid:s.rid};
+  if(S.p.screen==='active')S.p.screen='main',S.p.tab='home';
+  if(s.rid==='sophie')banner('r',`${S.p.name} is gestopt met parkeren`,`${dur(min)} · jij ontvangt ${eur(pay)}`,S.p.avatar);
+}
+
+const A={
+  view:v=>{S.view=v;if(v==='r')S.unseenR=false},
+  speed:v=>{S.speed=+v},
+  reset:()=>{S=fresh();try{localStorage.removeItem(KEY)}catch(e){}},
+  go:v=>{S.p.screen=v;if(v==='active'&&!S.session)S.p.screen='main'},
+  skipOnb:()=>A.finishOnb(),
+  finishOnb:()=>{S.p.screen='main';S.p.tab='home';if(!S.route.account){S.route.account=true;log('lb',`Nieuw account: ${esc(S.p.name)} (parkeerder) met ${S.p.plates.length} kentekens.`)}},
+  plate:v=>{S.p.plate=+v},
+  addPlate:()=>{const n=S.p.plates.length;const ex=[['ZZ-789-Z','Auto van mijn partner'],['GH-204-K','Deelauto'],['TR-551-B','Leaseauto']];const e=ex[(n-2)%3];if(n<5)S.p.plates.push({p:e[0],l:e[1]})},
+  avatar:v=>{S.p.avatar=v},
+  tab:v=>{S.p.screen='main';S.p.tab=v},
+  mapzone:v=>{if(S.p.screen!=='main'||S.p.tab!=='map'){return}S.p.mapZone=v||null},
+  discover:v=>{S.p.dzone=v;S.p.didx=0;S.p.screen='discover'},
+  skip:()=>{S.p.didx++;const n=Object.values(S.people).filter(x=>x.zone===S.p.dzone&&x.status!=='buddy').length;if(S.p.didx>=n)S.p.didx=0},
+  like:v=>like(v),
+  openStart:v=>{S.p.zone=v||S.p.zone;S.p.pick='';S.p.screen=S.session?'active':'start'},
+  matchPark:v=>{S.modal.p=null;S.p.zone=v;S.p.screen=S.session?'active':'start'},
+  dur:v=>{S.p.dur=+v},
+  startPark:()=>startPark(),
+  stopPark:()=>stopPark(false),
+  rStop:()=>stopPark(false),
+  extend:()=>{const s=S.session;if(!s)return;const pp=P(s.rid);const used=(s.end-s.start)/60000;const left=allowMin(pp)-used;const add=Math.min(30,Math.max(0,left));
+    if(add<=0){banner('p','Daglimiet bereikt',`${pp.name} staat max ${pp.maxDay} uur per dag toe.`,s.rid);return}
+    s.end+=add*60000;log('portaal',`Sessie ${s.id} verlengd met ${add} min.`,`PATCH /bezoekersparkeren/sessies/${s.id}\n{ eind: "${tm(s.end)}" }\n← 200 OK`);
+    if(s.rid==='sophie')banner('r',`${S.p.name} heeft verlengd`,`Nieuwe eindtijd ${tm(s.end)}`,S.p.avatar)},
+  close:v=>{S.modal[v]=null},
+  banner:v=>{S.banner[v]=null;if(v==='r'){S.r.screen='main';S.r.tab='home'}},
+  accept:()=>{acceptBy('sophie')},
+  decline:()=>{P('sophie').status='declined';log('lb','Sophie heeft het Buddy-verzoek van '+esc(S.p.name)+' geweigerd.')},
+  rtab:v=>{S.r.screen='main';S.r.tab=v},
+  rmain:v=>{S.r.screen='main';S.r.tab=v||'home'},
+  rgo:v=>{S.r.screen=v;S.r.draft=null},
+  pauseB:()=>{const me=P('sophie');me.paused=!me.paused;log('lb',`Sophie heeft automatisch parkeren voor ${esc(S.p.name)} ${me.paused?'gepauzeerd':'weer aangezet'}.`)},
+  maxDay:v=>{const me=P('sophie');me.maxDay=Math.max(1,Math.min(12,me.maxDay+ +v))},
+  removeB:()=>{const me=P('sophie');me.status='none';me.paused=false;log('lb',`Sophie heeft ${esc(S.p.name)} als Buddy verwijderd.`)},
+  rAuto:()=>{S.r.auto=!S.r.auto;log('lb',`Sophie heeft automatisch parkeren voor alle Buddies ${S.r.auto?'aangezet':'uitgezet'}.`)},
+  rNotify:()=>{S.r.notify=!S.r.notify},
+  saveHours:()=>{const me=P('sophie');if(S.r.draft!=null){me.shared=S.r.draft;log('lb',`Sophie deelt nu ${Math.round(me.shared)} uur van haar bezoekersuren.`)}S.r.draft=null;S.r.screen='main';S.r.tab='profile'},
+  unlink:()=>{S.r.linked=false;log('portaal','Koppeling met parkeerportaal verbroken.','DELETE /koppelingen/'+S.r.permit+'\n← 204 No Content')},
+  doLink:()=>{S.r.screen='linking';setTimeout(()=>{S.r.linked=true;S.r.screen='link';log('portaal',`Vergunning gekoppeld via meldcode bij ${S.r.gemeente}.`,`POST /koppelingen\n{ meldcode: "${S.r.meld.replace(/\d(?=\d{4})/g,'•')}" }\n← 200 OK · vergunning ${S.r.permit} · zone 1073 · tegoed ${hrs(remainYear(P('sophie')))} u`);render();save()},1600)}
+};
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-a]');if(!t)return;
+  const f=A[t.dataset.a];if(!f)return;f(t.dataset.v);save();render();
+});
+document.addEventListener('change',e=>{
+  const c=e.target.dataset.c;if(!c)return;const v=e.target.value;
+  if(c==='zone'){S.p.zone=v;S.p.pick=''}else if(c==='plate')S.p.plate=+v;else if(c==='pick')S.p.pick=v;else if(c==='gemeente')S.r.gemeente=v;
+  save();render();
+});
+document.addEventListener('input',e=>{
+  const k=e.target.dataset.in;if(k){S.p[k]=e.target.value;save();return}
+  const kr=e.target.dataset.inr;if(kr){S.r[kr]=e.target.value;save();return}
+  if(e.target.dataset.range==='hours'){S.r.draft=+e.target.value;const o=document.getElementById('hrsOut');if(o)o.textContent=e.target.value}
+});
+matchMedia('(max-width:820px)').addEventListener('change',render);
+
+/* ---------- clock ---------- */
+let last=performance.now(),saveT=0;
+setInterval(()=>{
+  const now=performance.now();S.sim+=(now-last)*S.speed;last=now;
+  if(S.session&&S.sim>=S.session.end&&!(S.modal.p&&S.modal.p.type==='starting')){stopPark(true);render();save();return}
+  live();
+  if((saveT+=1)%8===0)save();
+},250);
+
+/* boot: repair transient state after reload */
+if(S.modal.p&&S.modal.p.type==='starting'){S.modal.p=null;if(S.session){S.p.screen='active';S.route.park=true}}
+if(S.r.screen==='linking')S.r.screen='link',S.r.linked=true;
+S.banner={p:null,r:null};
+for(const [id,pp] of Object.entries(S.people))if(id!=='sophie'&&pp.status==='pending')setTimeout(()=>{if(pp.status==='pending'){acceptBy(id);render();save()}},1500);
+render();
+</script>
