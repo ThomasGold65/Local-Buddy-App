@@ -25,7 +25,7 @@ page = head + html.replace("</style>\n\n<div", "</style>\n</head>\n<body>\n<div"
 user, pw = (d / "login.local").read_text(encoding="utf-8").splitlines()[:2]
 enc = subprocess.run(
     ["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", str(ITER), "-md", "sha256", "-salt", "-pass", "env:LB_PASS"],
-    input=page.encode(), env={**os.environ, "LB_PASS": user.strip() + "\n" + pw},
+    input=page.encode(), env={**os.environ, "LB_PASS": user.strip().lower() + "\n" + pw},
     capture_output=True, check=True,
 ).stdout
 payload = base64.b64encode(enc).decode()

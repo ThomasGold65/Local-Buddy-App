@@ -46,6 +46,10 @@ button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
   <p class="foot">© LocalBuddy · een project van Gold Marketing</p>
 </form>
 <script>
+// WebCrypto werkt alleen via https: stuur http-bezoekers door.
+if(location.protocol==='http:'&&!/^(localhost|127\.0\.0\.1)$/.test(location.hostname))location.replace('https://'+location.host+location.pathname+location.search);
+</script>
+<script>
 const PAYLOAD="__PAYLOAD__", ITER=__ITER__;
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function unlock(pass){
@@ -61,12 +65,13 @@ function show(html){document.open();document.write(html);document.close()}
 const f=document.getElementById('f'),err=document.getElementById('err'),btn=document.getElementById('b');
 f.addEventListener('submit',async e=>{
   e.preventDefault();err.textContent='';btn.disabled=true;btn.textContent='Bezig met inloggen…';
-  const pass=document.getElementById('u').value.trim()+'\n'+document.getElementById('p').value;
+  if(!window.crypto||!crypto.subtle){err.textContent='Open deze pagina via https:// om in te loggen.';btn.disabled=false;btn.textContent='Inloggen';return}
+  const pass=document.getElementById('u').value.trim().toLowerCase()+'\n'+document.getElementById('p').value;
   try{const html=await unlock(pass);try{sessionStorage.setItem('lb-pass',pass)}catch(_){}show(html)}
   catch(_){err.textContent='Gebruikersnaam of wachtwoord klopt niet.';btn.disabled=false;btn.textContent='Inloggen'}
 });
 (async()=>{let p=null;try{p=sessionStorage.getItem('lb-pass')}catch(_){}
-  if(p){try{show(await unlock(p))}catch(_){try{sessionStorage.removeItem('lb-pass')}catch(_){}}}})();
+  if(p&&window.crypto&&crypto.subtle){try{show(await unlock(p))}catch(_){try{sessionStorage.removeItem('lb-pass')}catch(_){}}}})();
 </script>
 </body>
 </html>
