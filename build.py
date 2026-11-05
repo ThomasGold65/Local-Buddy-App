@@ -16,7 +16,8 @@ html = html.replace("/*__LEAFLET_CSS__*/", (d / "vendor/leaflet.css").read_text(
 html = html.replace("/*__LEAFLET_JS__*/", (d / "vendor/leaflet.js").read_text(encoding="utf-8").replace("</script", "<\\/script"))
 html = html.replace("/*__ZONES__*/{}", (d / "vendor/zones.json").read_text(encoding="utf-8"))
 
-head = '<!doctype html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="robots" content="noindex, nofollow">\n'
+meta = (d / "head-meta.html").read_text(encoding="utf-8")
+head = '<!doctype html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n' + meta
 page = head + html.replace("</style>\n\n<div", "</style>\n</head>\n<body>\n<div", 1) + "\n</body>\n</html>\n"
 
 (d / "local").mkdir(exist_ok=True)
@@ -29,6 +30,6 @@ enc = subprocess.run(
     capture_output=True, check=True,
 ).stdout
 payload = base64.b64encode(enc).decode()
-login = (d / "login.html").read_text(encoding="utf-8")
+login = (d / "login.html").read_text(encoding="utf-8").replace("<!--HEADMETA-->", meta)
 (d / "index.html").write_text(login.replace("__PAYLOAD__", payload).replace("__ITER__", str(ITER)), encoding="utf-8")
 print("offline:", len(page) // 1024, "KB · index.html (versleuteld):", (d / "index.html").stat().st_size // 1024, "KB")
