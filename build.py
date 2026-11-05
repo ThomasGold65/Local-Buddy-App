@@ -5,7 +5,7 @@
 
 De login staat in login.local (regel 1 gebruikersnaam, regel 2 wachtwoord) en staat niet in git.
 """
-import base64, os, pathlib, subprocess
+import base64, os, pathlib, re, subprocess
 
 ITER = 150000
 d = pathlib.Path(__file__).parent
@@ -15,6 +15,21 @@ for f in sorted((d / "avatars").glob("*.jpg")):
 html = html.replace("/*__LEAFLET_CSS__*/", (d / "vendor/leaflet.css").read_text(encoding="utf-8"))
 html = html.replace("/*__LEAFLET_JS__*/", (d / "vendor/leaflet.js").read_text(encoding="utf-8").replace("</script", "<\\/script"))
 html = html.replace("/*__ZONES__*/{}", (d / "vendor/zones.json").read_text(encoding="utf-8"))
+
+# Obfuscatie: de app-eigen JS (niet Leaflet) wordt ge-XOR'd en base64-verpakt, zodat opgeslagen
+# broncode geen leesbare, herbruikbare code meer is. Een kleine loader ontpakt en draait het.
+m = re.search(r"<script>/\*APP_START\*/(.*?)/\*APP_END\*/</script>", html, re.S)
+if not m:
+    raise SystemExit("APP_START/APP_END markers niet gevonden in app.src.html")
+KEY = b"GoldMarketing-LocalBuddy-2026"
+xored = bytes(b ^ KEY[i % len(KEY)] for i, b in enumerate(m.group(1).encode("utf-8")))
+blob = base64.b64encode(xored).decode()
+karr = ",".join(str(b) for b in KEY)
+loader = ("<script>(function(){var B=\"" + blob + "\",K=[" + karr + "];"
+          "var s=atob(B),u=new Uint8Array(s.length);"
+          "for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i)^K[i%K.length];"
+          "window.eval(new TextDecoder().decode(u));})();</script>")
+html = html[:m.start()] + loader + html[m.end():]
 
 meta = (d / "head-meta.html").read_text(encoding="utf-8")
 head = '<!doctype html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n' + meta

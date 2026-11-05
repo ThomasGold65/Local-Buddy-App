@@ -45,7 +45,7 @@ button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
   <label class="keep"><input type="checkbox" id="keep" checked> Ingelogd blijven op dit apparaat</label>
   <p class="err" id="err" role="alert"></p>
   <button id="b" type="submit">Inloggen</button>
-  <p class="foot">© LocalBuddy · een project van Gold Marketing</p>
+  <p class="foot">© Gold Marketing · LocalBuddy — vertrouwelijk, niet kopiëren</p>
 </form>
 <script>
 // WebCrypto werkt alleen via https: stuur http-bezoekers door.
@@ -68,8 +68,9 @@ const f=document.getElementById('f'),err=document.getElementById('err'),btn=docu
 f.addEventListener('submit',async e=>{
   e.preventDefault();err.textContent='';btn.disabled=true;btn.textContent='Bezig met inloggen…';
   if(!window.crypto||!crypto.subtle){err.textContent='Open deze pagina via https:// om in te loggen.';btn.disabled=false;btn.textContent='Inloggen';return}
-  const pass=document.getElementById('u').value.trim().toLowerCase()+'\n'+document.getElementById('p').value;
-  try{const html=await unlock(pass);try{(document.getElementById('keep').checked?localStorage:sessionStorage).setItem('lb-pass',pass)}catch(_){}show(html)}
+  const user=document.getElementById('u').value.trim();
+  const pass=user.toLowerCase()+'\n'+document.getElementById('p').value;
+  try{const html=await unlock(pass);try{const st=document.getElementById('keep').checked?localStorage:sessionStorage;st.setItem('lb-pass',pass);st.setItem('lb-user',user)}catch(_){}show(html)}
   catch(_){err.textContent='Gebruikersnaam of wachtwoord klopt niet.';btn.disabled=false;btn.textContent='Inloggen'}
 });
 (async()=>{let p=null;try{p=sessionStorage.getItem('lb-pass')||localStorage.getItem('lb-pass')}catch(_){}
