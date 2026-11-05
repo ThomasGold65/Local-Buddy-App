@@ -2,32 +2,31 @@
 
 **Overal een bekende!** Bewoners met een bezoekersvergunning delen hun ongebruikte bezoekersuren met parkeerders.
 
-Deze repository bevat de klikbare demo van de app.
+Live demo (besloten, met login): https://localbuddy.goldmarketing.nl
 
 ## Hoe het werkt
 
 1. **Eenmalige klik:** de parkeerder vindt een bewoner op de kaart en tikt op *Word Buddy*. De bewoner accepteert één keer.
 2. **Automatisch parkeren:** daarna start de parkeerder een sessie met één tik. Er gaat geen verzoek per keer naar de bewoner. LocalBuddy kiest de Buddy, controleert de limieten en meldt de sessie aan in het bezoekersparkeerportaal van de gemeente.
-3. **De bewoner houdt controle:** met een daglimiet per Buddy, pauzeren of verwijderen, een melding bij elke sessie en het totaal aantal gedeelde uren.
+3. **De bewoner houdt controle:** met een daglimiet per Buddy, pauzeren of verwijderen, een melding bij elke sessie, het totaal aantal gedeelde uren en een aan/uit-schakelaar per bekend kenteken.
 
-Tarieven in de demo: de parkeerder betaalt € 3,00 per uur (regulier € 4,00) en de bewoner ontvangt € 2,00 per uur.
+De kaart toont alle vergunningzones van Amsterdam en Rotterdam, uit RDW Open Data Parkeren (gebiedsbeheerder 363 en 599).
 
-## Demo openen
+## Besloten demo
 
-Open `index.html` in een browser. De demo werkt offline en heeft geen server nodig.
-
-- Links staat de parkeerder (Daan), rechts de bewoner (Sophie). Het middenpaneel toont de demo-route en de calls naar het parkeerportaal.
-- Met **1 sec = 1 min** loopt een sessie snel af.
-- Met **Demo resetten** begin je opnieuw.
+`index.html` is een inlogpagina. De demo zit daar AES-versleuteld in en wordt pas in de browser ontsleuteld met de juiste gebruikersnaam en het juiste wachtwoord. De broncode en de echte gegevens staan dus niet leesbaar in deze repository.
 
 ## Bestanden
 
 | Bestand | Wat |
 | --- | --- |
-| `app.src.html` | Broncode van de demo (HTML, CSS en JS) |
+| `index.html` | Inlogpagina met de versleutelde demo (GitHub Pages) |
+| `login.html` | Sjabloon van de inlogpagina |
+| `build.py` | Bouwt de demo en versleutelt hem in `index.html` |
+| `vendor/` | Leaflet (kaart) en de zonegrenzen (`zones.json`) |
 | `avatars/` | Avatars, uitgesneden uit het LocalBuddy-deck |
-| `build.py` | Zet de avatars inline en maakt `index.html` en `artifact.html` |
-| `index.html` | Gebouwde demo die zelfstandig werkt |
+
+Lokaal en niet in git: `app.src.html` (broncode), `login.local` (gebruikersnaam en wachtwoord) en `local/LocalBuddy-offline.html` (demo zonder login).
 
 Opnieuw bouwen na een wijziging:
 

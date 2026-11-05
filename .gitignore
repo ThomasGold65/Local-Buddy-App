@@ -1,4 +1,7 @@
 .DS_Store
-artifact.html
 __pycache__/
+local/
+login.local
+app.src.html
+artifact.html
 deploy/

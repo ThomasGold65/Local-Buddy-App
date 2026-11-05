@@ -1,14 +1,34 @@
-import base64, pathlib
+"""Bouwt de LocalBuddy-demo.
+
+- local/LocalBuddy-offline.html  volledige demo zonder login (alleen lokaal, staat niet in git)
+- index.html                      inlogpagina met de demo AES-versleuteld erin (gaat naar GitHub Pages)
+
+De login staat in login.local (regel 1 gebruikersnaam, regel 2 wachtwoord) en staat niet in git.
+"""
+import base64, os, pathlib, subprocess
+
+ITER = 150000
 d = pathlib.Path(__file__).parent
 html = (d / "app.src.html").read_text(encoding="utf-8")
 for f in sorted((d / "avatars").glob("*.jpg")):
-    uri = "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode()
-    html = html.replace(f"__AV_{f.stem}__", uri)
-# artifact.html: fragment for publishing (the host adds doctype/head)
-(d / "artifact.html").write_text(html, encoding="utf-8")
-# index.html: standalone offline version
-head = '<!doctype html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-(d / "index.html").write_text(head + html.replace("</style>", "</style>\n</head>\n<body>", 1) + "\n</body>\n</html>\n", encoding="utf-8")
-(d / "deploy").mkdir(exist_ok=True)
-(d / "deploy" / "index.html").write_text((d / "index.html").read_text(encoding="utf-8"), encoding="utf-8")
-print("built", len(html) // 1024, "KB")
+    html = html.replace(f"__AV_{f.stem}__", "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode())
+html = html.replace("/*__LEAFLET_CSS__*/", (d / "vendor/leaflet.css").read_text(encoding="utf-8"))
+html = html.replace("/*__LEAFLET_JS__*/", (d / "vendor/leaflet.js").read_text(encoding="utf-8").replace("</script", "<\\/script"))
+html = html.replace("/*__ZONES__*/{}", (d / "vendor/zones.json").read_text(encoding="utf-8"))
+
+head = '<!doctype html>\n<html lang="nl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="robots" content="noindex, nofollow">\n'
+page = head + html.replace("</style>\n\n<div", "</style>\n</head>\n<body>\n<div", 1) + "\n</body>\n</html>\n"
+
+(d / "local").mkdir(exist_ok=True)
+(d / "local" / "LocalBuddy-offline.html").write_text(page, encoding="utf-8")
+
+user, pw = (d / "login.local").read_text(encoding="utf-8").splitlines()[:2]
+enc = subprocess.run(
+    ["openssl", "enc", "-aes-256-cbc", "-pbkdf2", "-iter", str(ITER), "-md", "sha256", "-salt", "-pass", "env:LB_PASS"],
+    input=page.encode(), env={**os.environ, "LB_PASS": user.strip() + "\n" + pw},
+    capture_output=True, check=True,
+).stdout
+payload = base64.b64encode(enc).decode()
+login = (d / "login.html").read_text(encoding="utf-8")
+(d / "index.html").write_text(login.replace("__PAYLOAD__", payload).replace("__ITER__", str(ITER)), encoding="utf-8")
+print("offline:", len(page) // 1024, "KB · index.html (versleuteld):", (d / "index.html").stat().st_size // 1024, "KB")

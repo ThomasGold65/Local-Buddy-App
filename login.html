@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>LocalBuddy · Inloggen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<style>
+:root{--navy:#13205e;--green:#1d6b4e;--green-2:#2a8a63;--mint:#dff3e8;--muted:#6672a8;--line:#e3e6ee;--red:#c8323f;--page:#f4f5ef;--card:#fff}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--navy);font-family:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-left,0px));position:relative;overflow:hidden}
+body::before,body::after{content:"";position:fixed;border-radius:50%;background:var(--mint);z-index:0}
+body::before{width:520px;height:520px;right:-160px;top:-180px}
+body::after{width:380px;height:380px;left:-140px;bottom:-160px}
+.card{position:relative;z-index:1;width:100%;max-width:380px;background:var(--card);border-radius:26px;padding:30px 24px 24px;box-shadow:0 30px 60px -28px rgba(19,32,94,.35);display:flex;flex-direction:column;gap:14px}
+.brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:6px}
+.brand b{font-size:28px;font-weight:800;letter-spacing:-.03em}
+.brand b span{color:var(--green-2)}
+.brand small{color:var(--green);font-weight:700}
+.lead{margin:0 0 4px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5}
+.field{border:1.5px solid var(--line);border-radius:14px;padding:9px 14px;transition:border-color .15s}
+.field:focus-within{border-color:var(--green-2)}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+.field input{width:100%;border:0;outline:none;font:inherit;font-size:16px;font-weight:700;color:var(--navy);background:transparent;padding:2px 0}
+button{font:inherit;border:0;cursor:pointer;width:100%;padding:15px;border-radius:15px;background:var(--green);color:#fff;font-weight:700;font-size:15px;margin-top:4px}
+button:disabled{opacity:.6;cursor:default}
+button:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+.err{color:var(--red);font-size:13px;font-weight:600;text-align:center;min-height:18px;margin:0}
+.foot{text-align:center;font-size:12px;color:var(--muted);margin:4px 0 0}
+</style>
+</head>
+<body>
+<form class="card" id="f" autocomplete="on">
+  <div class="brand">
+    <svg width="54" height="64" viewBox="0 0 34 40" aria-hidden="true"><path d="M17 1C8.2 1 1 8 1 16.6 1 27.4 17 39 17 39s16-11.6 16-22.4C33 8 25.8 1 17 1z" fill="#13205e"/><circle cx="17" cy="16" r="11" fill="#2a8a63"/><path d="M17 23.5s-7-4.3-7-8.6c0-2.3 1.7-3.9 3.7-3.9 1.4 0 2.6.8 3.3 2 .7-1.2 1.9-2 3.3-2 2 0 3.7 1.6 3.7 3.9 0 4.3-7 8.6-7 8.6z" fill="#fff"/></svg>
+    <b>Local<span>Buddy</span></b><small>Overal een bekende!</small>
+  </div>
+  <p class="lead">Deze demo is besloten. Log in met de gegevens die je van ons hebt gekregen.</p>
+  <div class="field"><label for="u">Gebruikersnaam</label><input id="u" name="username" autocomplete="username" required autocapitalize="none" spellcheck="false"></div>
+  <div class="field"><label for="p">Wachtwoord</label><input id="p" name="password" type="password" autocomplete="current-password" required></div>
+  <p class="err" id="err" role="alert"></p>
+  <button id="b" type="submit">Inloggen</button>
+  <p class="foot">© LocalBuddy · een project van Gold Marketing</p>
+</form>
+<script>
+const PAYLOAD="__PAYLOAD__", ITER=__ITER__;
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function unlock(pass){
+  const raw=b64(PAYLOAD);
+  const salt=raw.slice(8,16), ct=raw.slice(16);
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pass),'PBKDF2',false,['deriveBits']);
+  const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:ITER,hash:'SHA-256'},base,384));
+  const key=await crypto.subtle.importKey('raw',bits.slice(0,32),'AES-CBC',false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-CBC',iv:bits.slice(32,48)},key,ct);
+  return new TextDecoder().decode(pt);
+}
+function show(html){document.open();document.write(html);document.close()}
+const f=document.getElementById('f'),err=document.getElementById('err'),btn=document.getElementById('b');
+f.addEventListener('submit',async e=>{
+  e.preventDefault();err.textContent='';btn.disabled=true;btn.textContent='Bezig met inloggen…';
+  const pass=document.getElementById('u').value.trim()+'\n'+document.getElementById('p').value;
+  try{const html=await unlock(pass);try{sessionStorage.setItem('lb-pass',pass)}catch(_){}show(html)}
+  catch(_){err.textContent='Gebruikersnaam of wachtwoord klopt niet.';btn.disabled=false;btn.textContent='Inloggen'}
+});
+(async()=>{let p=null;try{p=sessionStorage.getItem('lb-pass')}catch(_){}
+  if(p){try{show(await unlock(p))}catch(_){try{sessionStorage.removeItem('lb-pass')}catch(_){}}}})();
+</script>
+</body>
+</html>
